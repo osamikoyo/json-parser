@@ -2,60 +2,103 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
-char **create_tokens(int token_number) {
-  char **tokens = (char **)calloc(token_number, sizeof(char *));
-  if (!tokens) {
-    perror("failed calloc memory");
+Token get_token_from_string(const char **start) {
+  Token tkn;
+
+  const char *p = *start + 1;
+
+  int len = 0;
+
+  while (*p != '"') {
+    len++;
+    p++;
   }
 
-  for (int i = 0; i < token_number; i++) {
-    tokens[i] = (char *)calloc(TOKEN_MAX_SIZE, sizeof(char));
-    if (!tokens[i]) {
-      perror("failed calloc memory");
-    }
-  }
+  tkn.type = STRING;
+  tkn.start = *start;
+  tkn.len = len;
 
-  return tokens;
+  *start = p + 1;
+
+  return tkn;
 }
 
-void parse_tokens(const char *data, char **tokens) {
-  const char *ptr = data;
+Token get_next_token(const char **pos) {
+  const char *p = *pos;
 
-  int tokens_index = 0;
-  int current_token_index = 0;
+  while (*p && isspace(*p))
+    p++;
 
-  enum State state = NORMAL;
+  if (!*p) {
+    Token tkn;
 
-  char token_buf[TOKEN_MAX_SIZE];
-  int buf_index = 0;
+    tkn.type = EOF;
 
-  while (*ptr != '\0') {
-    if (state == IN_STRING) {
-      if (*ptr == '"') {
-        strncpy(token_buf, tokens[tokens_index], buf_index);
+    return tkn;
+  }
 
-        tokens_index++;
-        buf_index = 0;
+  Token tkn;
 
-        state = NORMAL;
-      } else {
-        token_buf[buf_index] = *ptr;
-        buf_index++;
-      }
-    } else {
-      if (isspace(*ptr) == 0) {
-        switch (*ptr) {
-        case '{':
-          token_buf[0] = '{';
-          strcpy(token_buf, tokens[tokens_index]);
-        }
-      }
-    }
+  switch (*p) {
+  case '{':
+    tkn.type = LBRACE;
+    tkn.start = p;
+    tkn.len = 1;
+
+    (*pos)++;
+
+    return tkn;
+  case '}':
+    tkn.type = RBRACE;
+    tkn.start = p;
+    tkn.len = 1;
+
+    (*pos)++;
+
+    return tkn;
+  case ',':
+    tkn.type = COMMA;
+    tkn.start = p;
+    tkn.len = 1;
+
+    (*pos)++;
+
+    return tkn;
+  case '"':
+    tkn = get_token_from_string(&p);
+    *pos = p;
+    return tkn;
+  default:
+    tkn.type = UNKNOWN;
+
+    return tkn;
   }
 }
 
-char **tokenize(const char *data) {
-  char **tokens = create_tokens(MAX_TOKEN_NUMBER);
+Token *tokenize(const char *data) {
+  Token *start = calloc(MAX_TOKEN_NUMBER, sizeof(Token));
+  Token *position = start;
+  Token tkn;
+
+  const char *p = data;
+
+  do {
+    tkn = get_next_token(&p);
+    if (tkn.type == EOF) {
+      break;
+    }
+    if (tkn.type == UNKNOWN) {
+      perror("unknown token type");
+      break;
+    }
+
+    if (position - start >= MAX_TOKEN_NUMBER - 1) {
+      perror("overload");
+      break;
+    }
+
+  } while (tkn.type != EOF);
+
+  return start;
 }
