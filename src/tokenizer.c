@@ -1,7 +1,38 @@
 #include "tokenizer.h"
 #include <ctype.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+int get_token_numbers(const char *data) {
+  if (data == NULL) {
+    return 0;
+  }
+
+  const char *p = data;
+
+  int number = 0;
+
+  bool in_str = true;
+  while (*p != '\0') {
+    if (in_str) {
+      if (*p == '"') {
+        number++;
+
+        in_str = false;
+      }
+    } else if (*p == '{' | *p == '}' | *p == ':' | *p == ',' | *p == '[' |
+               *p == ']') {
+      number++;
+    } else if (*p == '"') {
+      in_str = true;
+    }
+
+    p++;
+  }
+
+  return number;
+}
 
 Token get_token_from_string(const char **start) {
   Token tkn;
@@ -17,14 +48,14 @@ Token get_token_from_string(const char **start) {
 
   tkn.type = STRING;
   tkn.start = *start;
-  tkn.len = len;
+  tkn.len = len + 2;
 
-  *start = p + 1;
+  *start = p + 2;
 
   return tkn;
 }
 
-Token get_next_token(const char **pos) {
+Token get_next_token(const char **pos, int *opened_braces) {
   const char *p = *pos;
 
   while (*p && isspace(*p))
@@ -46,6 +77,7 @@ Token get_next_token(const char **pos) {
     tkn.start = p;
     tkn.len = 1;
 
+    (*opened_braces)++;
     (*pos)++;
 
     return tkn;
@@ -54,6 +86,7 @@ Token get_next_token(const char **pos) {
     tkn.start = p;
     tkn.len = 1;
 
+    (*opened_braces)--;
     (*pos)++;
 
     return tkn;
@@ -65,6 +98,15 @@ Token get_next_token(const char **pos) {
     (*pos)++;
 
     return tkn;
+  case ':':
+    tkn.type = COLON;
+    tkn.start = p;
+    tkn.len = 1;
+
+    (*pos)++;
+
+    return tkn;
+
   case '"':
     tkn = get_token_from_string(&p);
     *pos = p;
@@ -83,22 +125,31 @@ Token *tokenize(const char *data) {
 
   const char *p = data;
 
+  int opened_braces = 0;
+
   do {
-    tkn = get_next_token(&p);
-    if (tkn.type == EOF) {
-      break;
-    }
-    if (tkn.type == UNKNOWN) {
-      perror("unknown token type");
-      break;
-    }
+    Token tkn = get_next_token(&p, &opened_braces);
+
+    printf("new token with len: %zu\n", tkn.len);
 
     if (position - start >= MAX_TOKEN_NUMBER - 1) {
-      perror("overload");
-      break;
+      fprintf(stderr, "Too many tokens (max %d)\n", MAX_TOKEN_NUMBER - 1);
+      free(start);
+      return NULL;
     }
 
-  } while (tkn.type != EOF);
+    *position = tkn;
+    position++;
+
+    if (tkn.type == EOF_TOKEN)
+      break;
+
+    if (tkn.type == UNKNOWN) {
+      fprintf(stderr, "Unknown token near position %zu\n", (size_t)(p - data));
+      free(start);
+      return NULL;
+    }
+  } while (opened_braces != 0);
 
   return start;
 }
