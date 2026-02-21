@@ -1,10 +1,23 @@
+#include <stddef.h>
 #define TOKEN_MAX_SIZE 32
 #define MAX_TOKEN_NUMBER 250
 
-enum State {
-  NORMAL,
-  IN_STRING,
-  IN_LIST,
+enum TokenType {
+  LBRACE,
+  RBRACE,
+  STRING,
+  COLON,
+  NUMBER,
+  COMMA,
+  EOF_TOKEN,
+  UNKNOWN,
 };
 
-char **tokenize(const char *data);
+typedef struct Token {
+  enum TokenType type;
+  const char *start;
+  size_t len;
+} Token;
+
+Token *tokenize(const char *data);
+int get_token_numbers(const char *data);
