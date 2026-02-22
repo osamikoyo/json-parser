@@ -37,10 +37,6 @@ char *read_from_file(const char *filename) {
 }
 
 int display_token(const Token *tkn) {
-  if (tkn == NULL || tkn->start == NULL || tkn->len == 0) {
-    printf("(null/empty) ");
-    return 0;
-  }
   printf("%.*s ", (int)tkn->len, tkn->start);
 
   return 1;
@@ -71,6 +67,8 @@ int main() {
     }
     current++;
   }
+
+  printf("\n");
 
   free(tokens);
   free(data);
