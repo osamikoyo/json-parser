@@ -51,8 +51,6 @@ int main() {
     return 1;
   }
 
-  printf("token number: %d\n", get_token_numbers(data));
-
   Token *tokens = tokenize(data);
   if (!tokens) {
     fprintf(stderr, "Tokenization failed\n");
