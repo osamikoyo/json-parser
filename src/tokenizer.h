@@ -20,4 +20,3 @@ typedef struct Token {
 } Token;
 
 Token *tokenize(const char *data);
-int get_token_numbers(const char *data);
