@@ -95,10 +95,26 @@ Token get_next_token(const char **pos, int *opened_braces) {
 
     return tkn;
 
+  case '[':
+    tkn.type = L_ARR_BRACE;
+    tkn.start = p;
+    tkn.len = 1;
+
+    (*pos)++;
+
+    return tkn;
+  case ']':
+    tkn.type = R_ARR_BRACE;
+    tkn.start = p;
+    tkn.len = 1;
+
+
+
   case '"':
     tkn = get_token_from_string(&p);
     *pos = p;
     return tkn;
+
   default:
     tkn.type = UNKNOWN;
 
