@@ -108,8 +108,8 @@ Token get_next_token(const char **pos, int *opened_braces) {
     tkn.start = p;
     tkn.len = 1;
 
-
-
+    (*pos)++;
+    return tkn;
   case '"':
     tkn = get_token_from_string(&p);
     *pos = p;
