@@ -27,7 +27,7 @@ int get_token_numbers(const char *data) {
     p++;
   }
 
-  return number + (q_number/2)+1;
+  return number + (q_number/2)+5;
 }
 
 Token get_token_from_string(const char **start) {
