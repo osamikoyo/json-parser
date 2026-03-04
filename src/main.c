@@ -59,8 +59,9 @@ int main() {
   }
 
   Token *current = tokens;
-  while (current->type != EOF_TOKEN || current->len != 0) {
-    if (display_token(current) == 0) {
+  while (current->type != EOF_TOKEN) {
+    int d = display_token(current);
+    if (d == 0) {
       break;
     }
     current++;
