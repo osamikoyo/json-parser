@@ -2,16 +2,25 @@
 
 typedef struct Object Object;
 typedef struct Pair Pair;
+typedef union Value Value;
+typedef struct List List;
 
 enum ValueType {
   OBJECT,
-  VALUE,
+  STRING_VALUE,
+  LIST,
 };
 
-typedef union {
-  char *value;
+ union Value{
+  char *str;
   Object *obj;
-} Value;
+  List* list;
+};
+
+struct List{
+  int len;
+  Value *elems;
+};
 
 struct Object {
   Pair *pairs;
