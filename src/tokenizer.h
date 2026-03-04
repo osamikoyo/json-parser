@@ -5,6 +5,8 @@
 enum TokenType {
   LBRACE,
   RBRACE,
+  L_ARR_BRACE,
+  R_ARR_BRACE,
   STRING,
   COLON,
   NUMBER,
