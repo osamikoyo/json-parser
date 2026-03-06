@@ -130,6 +130,63 @@ Pair *parse_pair(Token **start) {
   return pair;
 }
 
+int to_next_brace(Token **start, enum TokenType brace) {
+  Token *p = *start;
+
+  enum TokenType brace_to_find;
+
+  switch (brace) {
+  case L_ARR_BRACE:
+    brace_to_find = R_ARR_BRACE;
+  case LBRACE:
+    brace_to_find = RBRACE;
+  default:
+    fprintf(stderr, "unexpected brace type");
+    
+    return 1;
+  }
+
+  p++;
+
+  int opened_branches = 1;
+
+  while (opened_branches != 0) {
+    if (p->type == brace_to_find) {
+      if (opened_branches == 1) {
+        break;
+      } else {
+        opened_branches--;
+      }
+    }
+
+    if (p->type == brace) {
+      opened_branches++;
+    }
+    
+    p++;
+  }
+
+  *start = p;
+
+  return 0;
+}
+
+int get_elements_number(Token **start) {
+  Token *p = *start;
+
+  if (p->type != L_ARR_BRACE) {
+    fprintf(stderr, "start token of a list must be with L_ARR_BRACE type");
+
+    return -1;
+  } 
+
+  p++;
+
+  if (p->type == L_ARR_BRACE || p->type == LBRACE) {
+    
+  }
+}
+
 List *parse_list(Token **start) {
   Token *p = *start;
 
