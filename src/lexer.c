@@ -319,11 +319,14 @@ Object *parse_object(Token **start) {
     return NULL;
   }
 
-  Pair *current_pair;
+  obj->pairs = pairs;
+
+  Pair *current_pair = pairs;
 
   p++;
 
-  int after_comma = 0;
+  int after_comma = 1;
+  int len = 0;
 
   while (p->type != RBRACE) {
     if (after_comma == 1) {
@@ -343,11 +346,39 @@ Object *parse_object(Token **start) {
       }
 
       memcpy(current_pair->key, p->start, p->len);
+      p++;
     } else if (p->type == COMMA) {
       after_comma = 1;
+      p++;
     } else {
+      ValueTyped *value = parse_value(&p);
+      if (value == NULL) {
+        fprintf(stderr, "failed parse value from pair");
+
+        return NULL;
+      }
+
+      switch (value->type) {
+      case STRING_VALUE:
+        current_pair->type = STRING_VALUE;
+        current_pair->value.str = value->val->str;
+
+        current_pair++;
+      case OBJECT:
+        current_pair->type = OBJECT;
+        current_pair->value.obj = value->val->obj;
+
+        current_pair++;
+      case LIST:
+        current_pair->type = LIST;
+        current_pair->value.list = value->val->list;
+
+        current_pair++;
+      }
     }
   }
+
+  return obj;
 }
 
 Object *tokens_to_ast(Token *tokens) {}
