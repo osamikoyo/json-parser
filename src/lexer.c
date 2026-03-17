@@ -7,10 +7,38 @@ Pair *parse_pair(Token **start);
 Object *parse_object(Token **start);
 List *parse_list(Token **start);
 
-typedef struct {
-  Value *val;
-  enum ValueType type;
-} ValueTyped;
+void destroy_list(List *list);
+void destroy_pair(Pair *pair);
+void destroy_object(Object *obj);
+
+void destroy_value(ValueTyped *vt) {
+  switch (vt->type) {
+  case STRING_VALUE:
+    free(vt->val->str);
+    break;
+  case OBJECT:
+    destroy_object(vt->val->obj);
+    break;
+  case LIST:
+    destroy_list(vt->val->list);
+    break;
+  }
+}
+
+void destroy_list(List *list) {
+  for (int i = 0; i < list->len; i++) {
+    destroy_value(&list->elems[i]);
+  }
+}
+
+void destroy_pair(Pair *pair) {
+  free(pair->key);
+  destroy_value(pair->value);
+}
+
+void destroy_object(Object *obj) {
+  
+}
 
 ValueTyped *parse_value(Token **start) {
   Token *p = *start;
@@ -24,6 +52,10 @@ ValueTyped *parse_value(Token **start) {
   value_typed->val = malloc(sizeof(Value));
   if (!value_typed->val) {
     fprintf(stderr, "failed allocate memory for value");
+
+    free(value_typed);
+
+    return NULL;
   }
 
   switch (p->type) {
@@ -32,7 +64,7 @@ ValueTyped *parse_value(Token **start) {
     if (!str) {
       fprintf(stderr, "failed allocate memory for value");
 
-      return NULL;
+      goto cleanup;
     }
 
     memcpy(str, p->start, p->len);
@@ -42,6 +74,10 @@ ValueTyped *parse_value(Token **start) {
     value_typed->type = STRING_VALUE;
 
     value_typed->val->str = str;
+
+    p++;
+
+    break;
   }
 
   case L_ARR_BRACE: {
@@ -49,7 +85,7 @@ ValueTyped *parse_value(Token **start) {
     if (lst == NULL) {
       fprintf(stderr, "failed parse list");
 
-      return NULL;
+      goto cleanup;
     }
 
     value_typed->type = LIST;
@@ -63,7 +99,7 @@ ValueTyped *parse_value(Token **start) {
     if (obj == NULL) {
       fprintf(stderr, "failed parse object");
 
-      return NULL;
+      goto cleanup;
     }
 
     value_typed->type = OBJECT;
@@ -74,12 +110,24 @@ ValueTyped *parse_value(Token **start) {
   default:
     fprintf(stderr, "unknown token type");
 
-    return NULL;
+    goto cleanup;
   }
 
   *start = p;
 
   return value_typed;
+
+cleanup:
+  if (value_typed->type) {
+    free(value_typed->val->str);
+    free(value_typed->val->obj);
+    free(value_typed->val->list);
+
+    free(value_typed->val);
+  }
+
+  free(value_typed);
+  return NULL;
 }
 
 Pair *parse_pair(Token **start) {
@@ -128,15 +176,7 @@ Pair *parse_pair(Token **start) {
 
   ValueTyped *value_typed = parse_value(&p);
 
-  pair->type = value_typed->type;
-  switch (value_typed->type) {
-  case STRING_VALUE:
-    pair->value.str = value_typed->val->str;
-  case OBJECT:
-    pair->value.obj = value_typed->val->obj;
-  case LIST:
-    pair->value.list = value_typed->val->list;
-  }
+  pair->value = value_typed;
 
   *start = p;
 
@@ -216,7 +256,7 @@ List *parse_list(Token **start) {
     return NULL;
   }
 
-  list->elems = calloc(len, sizeof(Value));
+  list->elems = calloc(len, sizeof(ValueTyped));
   if (!list->elems) {
     fprintf(stderr, "failed allocate memory for elements");
 
@@ -225,7 +265,7 @@ List *parse_list(Token **start) {
     return NULL;
   }
 
-  Value *current_list_element = list->elems;
+  ValueTyped *current_list_element = list->elems;
 
   list->len = len;
 
@@ -243,14 +283,7 @@ List *parse_list(Token **start) {
         return NULL;
       }
 
-      switch (value->type) {
-      case STRING_VALUE:
-        current_list_element->str = value->val->str;
-      case OBJECT:
-        current_list_element->obj = value->val->obj;
-      case LIST:
-        current_list_element->list = value->val->list;
-      }
+      current_list_element = value;
 
       current_list_element++;
     } else {
@@ -358,23 +391,7 @@ Object *parse_object(Token **start) {
         return NULL;
       }
 
-      switch (value->type) {
-      case STRING_VALUE:
-        current_pair->type = STRING_VALUE;
-        current_pair->value.str = value->val->str;
-
-        current_pair++;
-      case OBJECT:
-        current_pair->type = OBJECT;
-        current_pair->value.obj = value->val->obj;
-
-        current_pair++;
-      case LIST:
-        current_pair->type = LIST;
-        current_pair->value.list = value->val->list;
-
-        current_pair++;
-      }
+      current_pair->value = value;
     }
   }
 
