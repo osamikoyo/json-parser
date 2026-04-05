@@ -125,16 +125,16 @@ ValueTyped *parse_value(Token **start) {
 
   switch (p->type) {
   case STRING: {
-    char *str = calloc(p->len + 1, sizeof(char));
+    char *str = calloc(p->len - 1, sizeof(char));
     if (!str) {
       fprintf(stderr, "failed allocate memory for value");
 
       goto fail;
     }
 
-    memcpy(str, p->start, p->len);
+    memcpy(str, p->start + 1, p->len - 2);
 
-    str[p->len] = '\0';
+    str[p->len - 2] = '\0';
 
     value_typed->type = STRING_VALUE;
 
@@ -200,13 +200,13 @@ void parse_pair_into(Token **start, Pair *pair_out) {
     return;
   }
 
-  char *key = calloc(p->len + 1, sizeof(char));
+  char *key = calloc(p->len - 1, sizeof(char));  // -1 for null terminator, -2 for quotes but +1 for null, wait
   if (!key) {
     fprintf(stderr, "failed allocate memory for key\n");
     return;
   }
-  memcpy(key, p->start, p->len);
-  key[p->len] = '\0';
+  memcpy(key, p->start + 1, p->len - 2);
+  key[p->len - 2] = '\0';
 
   p++;
 
