@@ -12,8 +12,12 @@ List *parse_list(Token **start);
 
 void destroy_list(List *list);
 void destroy_object(Object *obj);
-
 void parse_pair_into(Token **start, Pair *pair_out);
+
+size_t token_number_in_value(ValueTyped *vt);
+size_t token_number_in_pair(Pair *pair);
+size_t token_number_in_list(List *list);
+size_t token_number_in_object(Object *obj);
 
 void destroy_value(ValueTyped *vt) {
   if (vt == NULL || vt->type == 0) {
@@ -40,7 +44,8 @@ void destroy_value(ValueTyped *vt) {
 }
 
 void destroy_list(List *list) {
-  if (list == NULL) return;
+  if (list == NULL)
+    return;
 
   for (int i = 0; i < list->len; i++) {
     ValueTyped *elem = &list->elems[i];
@@ -61,8 +66,9 @@ void destroy_list(List *list) {
 }
 
 void destroy_pair(Pair *pair) {
-  if (pair == NULL) return;
-  
+  if (pair == NULL)
+    return;
+
   free(pair->key);
   if (pair->value != NULL) {
     destroy_value(pair->value);
@@ -70,7 +76,8 @@ void destroy_pair(Pair *pair) {
 }
 
 void destroy_object(Object *obj) {
-  if (obj == NULL) return;
+  if (obj == NULL)
+    return;
 
   for (int i = 0; i < obj->pair_count; i++) {
     Pair *pair = &obj->pairs[i];
@@ -93,6 +100,48 @@ void destroy_object(Object *obj) {
   free(obj->pairs);
   free(obj);
 }
+
+size_t token_number_in_value(ValueTyped *vt) {
+  if (vt == NULL) {
+    perror("value is empty");
+
+    return -1;
+  }
+
+  switch (vt->type) {
+  case STRING_VALUE:
+    return 1;
+  case LIST:
+    return token_number_in_list(vt->val->list);
+  case OBJECT:
+    return token_number_in_object(vt->val->obj);
+  }
+}
+
+size_t token_number_in_pair(Pair *pair) {
+  size_t result = 2;
+
+  result += token_number_in_value(pair->value);
+
+  return result;
+}
+
+size_t token_number_in_object(Object *obj) {
+  // '{' and '}'
+  size_t result = 2;
+
+  // pairs' token numbers
+  for (int i = 0; i < obj->pair_count; i++) {
+    result += token_number_in_pair(&obj->pairs[i]);
+  }
+
+  // commas after every pair
+  result += obj->pair_count - 1;
+
+  return result;
+}
+
+size_t token_number_in_list(List *list) {}
 
 ValueTyped *parse_value(Token **start) {
   if (start == NULL || *start == NULL) {
@@ -200,7 +249,10 @@ void parse_pair_into(Token **start, Pair *pair_out) {
     return;
   }
 
-  char *key = calloc(p->len - 1, sizeof(char));  // -1 for null terminator, -2 for quotes but +1 for null, wait
+  char *key = calloc(
+      p->len - 1,
+      sizeof(
+          char)); // -1 for null terminator, -2 for quotes but +1 for null, wait
   if (!key) {
     fprintf(stderr, "failed allocate memory for key\n");
     return;
@@ -355,10 +407,12 @@ int count_pairs_in_object(Token **start) {
       }
     } else if (p->type == COLON) {
       // Colon after key, still in pair
-      if (depth == 1) after_key = 1;
+      if (depth == 1)
+        after_key = 1;
     } else if (p->type == COMMA) {
       // Comma separates pairs
-      if (depth == 1) after_key = 0;
+      if (depth == 1)
+        after_key = 0;
     }
 
     if (p->type == L_ARR_BRACE || p->type == LBRACE) {
@@ -455,6 +509,12 @@ Object *parse_object(Token **start) {
   return obj;
 }
 
+Token *pair_to_ast(Pair *pair) {
+
+  if (pair->value->type == STRING_VALUE) {
+  }
+}
+
 Object *tokens_to_ast(Token *tokens) {
   Token *p = tokens;
 
@@ -466,4 +526,12 @@ Object *tokens_to_ast(Token *tokens) {
   }
 
   return ast;
+}
+
+Token *ast_to_tokens(Object *ast) {
+  if (ast == NULL) {
+    fprintf(stderr, "ast is empty");
+
+    return NULL;
+  }
 }
