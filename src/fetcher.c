@@ -43,7 +43,7 @@ static List *fetch_list_from_ast_internal(const char *key, size_t key_len,
   }
 
   if (pair->value->type != LIST) {
-    fprintf(stderr, "value for key '%.*s' is not a list (type=%d)\n", 
+    fprintf(stderr, "value for key '%.*s' is not a list (type=%d)\n",
             (int)key_len, key, pair->value->type);
     return NULL;
   }
@@ -181,7 +181,7 @@ void *fetch_from_ast(const char *key, Object *ast) {
     if (next_pos == NULL) {
       // This is the last key
       return fetch_string_from_ast_internal(current_key, strlen(current_key),
-                                           current_obj);
+                                            current_obj);
     }
 
     size_t key_len = next_pos - current_key;
@@ -194,8 +194,8 @@ void *fetch_from_ast(const char *key, Object *ast) {
         return NULL;
       }
       // fetch "current_key" as a list first
-      current_list = fetch_list_from_ast_internal(current_key, key_len,
-                                                  current_obj);
+      current_list =
+          fetch_list_from_ast_internal(current_key, key_len, current_obj);
       if (current_list == NULL) {
         return NULL;
       }
@@ -204,8 +204,8 @@ void *fetch_from_ast(const char *key, Object *ast) {
       // Check if this dot is immediately followed by bracket (.[index] pattern)
       if (*(next_pos + 1) == '[') {
         // This is ".[" - treat it as array access on current key
-        current_list = fetch_list_from_ast_internal(current_key, key_len,
-                                                    current_obj);
+        current_list =
+            fetch_list_from_ast_internal(current_key, key_len, current_obj);
         if (current_list == NULL) {
           return NULL;
         }
@@ -213,8 +213,8 @@ void *fetch_from_ast(const char *key, Object *ast) {
         current_key = next_pos + 1;
       } else {
         // Regular dot separator - access nested object
-        current_obj = fetch_object_from_ast_internal(current_key, key_len,
-                                                     current_obj);
+        current_obj =
+            fetch_object_from_ast_internal(current_key, key_len, current_obj);
         if (current_obj == NULL) {
           return NULL;
         }
