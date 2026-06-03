@@ -1,4 +1,5 @@
 #include "lexer.h"
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,6 +19,11 @@ size_t token_number_in_value(ValueTyped *vt);
 size_t token_number_in_pair(Pair *pair);
 size_t token_number_in_list(List *list);
 size_t token_number_in_object(Object *obj);
+
+void pair_to_tokens(Pair *pair, Token **tokens);
+void obj_to_tokens(Object *obj, Token **tokens);
+void list_to_tokens(List *list, Token **tokens);
+void value_to_tokens(ValueTyped *vt, Token **tokens);
 
 void destroy_value(ValueTyped *vt) {
   if (vt == NULL || vt->type == 0) {
@@ -100,48 +106,6 @@ void destroy_object(Object *obj) {
   free(obj->pairs);
   free(obj);
 }
-
-size_t token_number_in_value(ValueTyped *vt) {
-  if (vt == NULL) {
-    perror("value is empty");
-
-    return -1;
-  }
-
-  switch (vt->type) {
-  case STRING_VALUE:
-    return 1;
-  case LIST:
-    return token_number_in_list(vt->val->list);
-  case OBJECT:
-    return token_number_in_object(vt->val->obj);
-  }
-}
-
-size_t token_number_in_pair(Pair *pair) {
-  size_t result = 2;
-
-  result += token_number_in_value(pair->value);
-
-  return result;
-}
-
-size_t token_number_in_object(Object *obj) {
-  // '{' and '}'
-  size_t result = 2;
-
-  // pairs' token numbers
-  for (int i = 0; i < obj->pair_count; i++) {
-    result += token_number_in_pair(&obj->pairs[i]);
-  }
-
-  // commas after every pair
-  result += obj->pair_count - 1;
-
-  return result;
-}
-
-size_t token_number_in_list(List *list) {}
 
 ValueTyped *parse_value(Token **start) {
   if (start == NULL || *start == NULL) {
@@ -509,12 +473,6 @@ Object *parse_object(Token **start) {
   return obj;
 }
 
-Token *pair_to_ast(Pair *pair) {
-
-  if (pair->value->type == STRING_VALUE) {
-  }
-}
-
 Object *tokens_to_ast(Token *tokens) {
   Token *p = tokens;
 
@@ -527,6 +485,104 @@ Object *tokens_to_ast(Token *tokens) {
 
   return ast;
 }
+
+size_t token_number_in_value(ValueTyped *vt) {
+  if (vt == NULL) {
+    perror("value is empty");
+
+    return -1;
+  }
+
+  switch (vt->type) {
+  case STRING_VALUE:
+    return 1;
+  case LIST:
+    return token_number_in_list(vt->val->list);
+  case OBJECT:
+    return token_number_in_object(vt->val->obj);
+  }
+}
+
+size_t token_number_in_pair(Pair *pair) {
+  if (pair == NULL) {
+    perror("pair is empty");
+
+    return -1;
+  }
+
+  // key and ':'
+  size_t result = 2;
+
+  result += token_number_in_value(pair->value);
+
+  return result;
+}
+
+size_t token_number_in_object(Object *obj) {
+  // '{' and '}'
+  size_t result = 2;
+
+  // pairs' token numbers
+  for (int i = 0; i < obj->pair_count; i++) {
+    result += token_number_in_pair(&obj->pairs[i]);
+  }
+
+  // commas after every pair
+  result += obj->pair_count - 1;
+
+  return result;
+}
+
+size_t token_number_in_list(List *list) {
+  // '[' and ']'
+  size_t result = 2;
+
+  // elements in list
+  for (int i = 0; i < list->len; i++) {
+    result += token_number_in_value(&list->elems[i]);
+  }
+
+  // commas between elements
+  result += list->len - 1;
+
+  return result;
+}
+
+void pair_to_tokens(Pair *pair, Token **tokens) {
+  if (tokens == NULL || *tokens == NULL) {
+    fprintf(stderr, "tokens is empty");
+
+    return;
+  }
+
+  Token *p = *tokens;
+
+  // '{'
+  p->start = malloc(sizeof(char) * 2);
+  p->start[0] = '{';
+  p->len = 1;
+  p->type = LBRACE;
+
+  p++;
+
+  // key
+  p->start = strdup(pair->key);
+  p->len = strlen(pair->key);
+  p->type = STRING;
+
+  p++;
+
+  // value
+  value_to_tokens(pair->value, &p);
+
+  *tokens = p;
+
+  return;
+}
+
+void obj_to_tokens(Object *obj, Token **tokens);
+void list_to_tokens(List *list, Token **tokens);
+void value_to_tokens(ValueTyped *vt, Token **tokens);
 
 Token *ast_to_tokens(Object *ast) {
   if (ast == NULL) {
